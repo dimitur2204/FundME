@@ -1,0 +1,26 @@
+{
+  "name": "fundme",
+  "version": "1.0.0",
+  "description": "Crowd funding platform built on ethereum network smart contracts",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dimitur2204/FundME.git"
+  },
+  "keywords": [
+    "funding",
+    "eth",
+    "ethereum",
+    "smart",
+    "contracts"
+  ],
+  "author": "Dimitar",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dimitur2204/FundME/issues"
+  },
+  "homepage": "https://github.com/dimitur2204/FundME#readme"
+}
