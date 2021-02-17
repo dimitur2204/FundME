@@ -53,7 +53,7 @@ describe('Campaign', () => {
 		});
 		assert.ok(await campaign.methods.approvers(accounts[1]).call());
 	});
-	it('should require minimum contribution of 100 wei and does not add to approvers', async () => {
+	it('requires minimum contribution of 100 wei and does not add to approvers', async () => {
 		try {
 			await campaign.methods.contribute().send({
 				from: accounts[1],
@@ -64,6 +64,80 @@ describe('Campaign', () => {
 			assert.ok(!(await campaign.methods.approvers(accounts[1]).call()));
 		}
 	});
+	it('requires to be contributor to approve a request', async () => {
+		try {
+			await campaign.methods
+				.createRequest('Test Description', 100, accounts[2])
+				.send({ from: accounts[0], gas: 2000000 });
+
+			await campaign.methods.approveRequest(0).send({
+				from: accounts[1],
+				gas: '2000000',
+			});
+			assert(false);
+		} catch (error) {
+			const request = await campaign.methods.requests(0).call();
+			assert.strictEqual(request.approvalCount, '0');
+		}
+	});
+	it('requires to have more than half of contributors to approve to finalize', async () => {
+		try {
+			await campaign.methods
+				.createRequest('Test Description', 100, accounts[2])
+				.send({ from: accounts[0], gas: 2000000 });
+
+			await campaign.methods.contribute().send({
+				from: accounts[1],
+				value: '200',
+			});
+
+			await campaign.methods.contribute().send({
+				from: accounts[2],
+				value: '200',
+			});
+
+			await campaign.methods.contribute().send({
+				from: accounts[3],
+				value: '200',
+			});
+
+			await campaign.methods.approveRequest(0).send({
+				from: accounts[1],
+				gas: '2000000',
+			});
+
+			const request = await campaign.methods.requests(0).call();
+			assert.strictEqual(request.approvalCount, '1');
+
+			await campaign.methods.finalizeRequest(0).send({
+				from: accounts[0],
+				gas: '2000000',
+			});
+		} catch (error) {
+			assert(true);
+		}
+	});
+	it('requires to be manager to finalize', async () => {
+		try {
+			await campaign.methods
+				.createRequest('Test Description', 100, accounts[2])
+				.send({ from: accounts[0], gas: 2000000 });
+
+			await campaign.methods.contribute().send({
+				from: accounts[1],
+				value: '200',
+			});
+
+			const request = await campaign.methods.requests(0).call();
+			assert.ok(request.complete);
+			await campaign.methods.finalizeRequest(0).send({
+				from: accounts[1],
+				gas: '2000000',
+			});
+		} catch (error) {
+			assert(true);
+		}
+	});
 	it('allows manager to make a payment request', async () => {
 		await campaign.methods
 			.createRequest('Test description', 200, accounts[2])
@@ -72,11 +146,37 @@ describe('Campaign', () => {
 		assert.strictEqual(request.description, 'Test description');
 		assert.strictEqual(request.value, '200');
 	});
+	it('adds approver to approvers of request', async () => {
+		await campaign.methods.contribute().send({
+			from: accounts[1],
+			value: web3.utils.toWei('2', 'ether'),
+		});
+
+		await campaign.methods
+			.createRequest(
+				'Test Description',
+				web3.utils.toWei('1', 'ether'),
+				accounts[2]
+			)
+			.send({ from: accounts[0], gas: 2000000 });
+
+		await campaign.methods.approveRequest(0).send({
+			from: accounts[1],
+			gas: '2000000',
+		});
+
+		const request = await campaign.methods.requests(0).call();
+		assert.strictEqual(request.approvalCount, '1');
+	});
 	it('proccesses request fully', async () => {
 		await campaign.methods.contribute().send({
 			from: accounts[1],
 			value: web3.utils.toWei('2', 'ether'),
 		});
+
+		const prevBalance = parseFloat(
+			web3.utils.fromWei(await web3.eth.getBalance(accounts[2]), 'ether')
+		);
 
 		await campaign.methods
 			.createRequest(
@@ -96,9 +196,9 @@ describe('Campaign', () => {
 			gas: '2000000',
 		});
 
-		const balance = parseFloat(
+		const afterBalance = parseFloat(
 			web3.utils.fromWei(await web3.eth.getBalance(accounts[2]), 'ether')
 		);
-		assert(balance >= 101);
+		assert(afterBalance - prevBalance > 0.9);
 	});
 });
