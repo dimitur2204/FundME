@@ -1,0 +1,11 @@
+<mat-tab-group *ngIf="(connected$ | async)" mat-align-tabs="start">
+    <mat-tab label="List">
+        <app-campaign-list></app-campaign-list>
+    </mat-tab>
+    <mat-tab label="Create">
+        <app-campaign-create></app-campaign-create>
+    </mat-tab>
+</mat-tab-group>
+<div fxLayout="row" fxLayoutGap="40px" fxLayoutAlign="center center">
+    <button class="connect-btn" *ngIf="!(connected$ | async)" (click)="onClick()" mat-raised-button color="primary">Connect account</button>  
+</div>
